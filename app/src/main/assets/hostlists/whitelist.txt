@@ -1,0 +1,44 @@
+# Whitelist - домены исключенные из обработки zapret2
+# Сервисы, которые могут работать некорректно с DPI bypass
+
+# Социальные сети и медиа
+pinterest.com
+vkvideo.ru
+vk.com
+rutube.ru
+
+# E-commerce и объявления
+avito.ru
+
+# Стриминг
+netflix.com
+vsetop.org
+twitch.tv
+ttvnw.net
+static-cdn.jtvnw.net
+
+# Google API
+jnn-pa.googleapis.com
+ogs.google.com
+encrypted-tbn0.gstatic.com
+encrypted-tbn1.gstatic.com
+encrypted-tbn2.gstatic.com
+encrypted-tbn3.gstatic.com
+
+# Gaming
+steamcommunity.com
+steampowered.com
+tarkov.com
+escapefromtarkov.com
+
+# Мониторинг и CDN
+browser-intake-datadoghq.com
+datadoghq.com
+okcdn.ru
+api.mycdn.me
+
+# Госуслуги
+gosuslugi.ru
+
+# Разработка
+raw.githubusercontent.com

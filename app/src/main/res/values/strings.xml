@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">z2a</string>
+    <string name="nav_home">Главная</string>
+    <string name="nav_profiles">Профили</string>
+    <string name="nav_logs">Логи</string>
+    <string name="nav_settings">Настройки</string>
+    <string name="status_disconnected">Защита отключена</string>
+    <string name="status_connecting">Подключение…</string>
+    <string name="status_connected">Защита активна</string>
+    <string name="status_error">Ошибка</string>
+    <string name="btn_connect">Включить</string>
+    <string name="btn_disconnect">Выключить</string>
+    <string name="vpn_notification_channel">z2a DPI Bypass</string>
+    <string name="vpn_notification_title">z2a активен</string>
+    <string name="vpn_notification_text">DPI-обход работает</string>
+    <string name="profile_rkn">RKN</string>
+    <string name="profile_youtube">YouTube</string>
+    <string name="profile_discord">Discord</string>
+    <string name="profile_custom">Custom</string>
+    <string name="strategies_count">%d стратегий</string>
+    <string name="domains_count">%d доменов</string>
+    <string name="session_time">Время сессии</string>
+    <string name="current_strategy">Текущая стратегия</string>
+    <string name="autocircular_status">Автоциркуляр</string>
+</resources>
