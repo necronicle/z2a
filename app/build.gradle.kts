@@ -16,14 +16,30 @@ android {
         versionName = "1.0.0"
     }
 
+    signingConfigs {
+        create("release") {
+            val storeFilePath = System.getenv("Z2A_STORE_FILE")
+            if (storeFilePath != null) {
+                storeFile = file(storeFilePath)
+                storePassword = System.getenv("Z2A_STORE_PASSWORD")
+                keyAlias = System.getenv("Z2A_KEY_ALIAS")
+                keyPassword = System.getenv("Z2A_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseConfig = signingConfigs.findByName("release")
+            if (releaseConfig?.storeFile != null) {
+                signingConfig = releaseConfig
+            }
         }
     }
 

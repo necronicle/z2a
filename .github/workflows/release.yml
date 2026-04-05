@@ -24,37 +24,63 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Generate signing keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore app/release.jks \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias z2a \
+            -storepass z2a_release \
+            -keypass z2a_release \
+            -dname "CN=z2a, OU=necronicle, O=z2a, C=RU"
+
+      - name: Build signed Release APK
+        run: ./gradlew assembleRelease
+        env:
+          Z2A_STORE_FILE: release.jks
+          Z2A_STORE_PASSWORD: z2a_release
+          Z2A_KEY_ALIAS: z2a
+          Z2A_KEY_PASSWORD: z2a_release
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/z2a-${{ steps.version.outputs.VERSION }}.apk
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           name: "z2a ${{ steps.version.outputs.VERSION }}"
           body: |
-            ## z2a ${{ steps.version.outputs.VERSION }}
+            ## z2a ${{ steps.version.outputs.VERSION }} — Zapret2 for Android
 
-            Zapret2 for Android — DPI-обход с автоциркулярной ротацией стратегий.
+            DPI-обход с автоциркулярной ротацией стратегий.
+            Android-версия [z2k](https://github.com/necronicle/z2k) (Keenetic) и [z2w](https://github.com/necronicle/z2w) (Windows).
+
+            ### Скачать
+            Файл **z2a-${{ steps.version.outputs.VERSION }}.apk** — готовое к установке приложение.
 
             ### Установка
-            1. Скачайте APK
-            2. Разрешите установку из неизвестных источников
-            3. Установите и запустите
-            4. Нажмите кнопку подключения
-            5. Разрешите VPN-подключение
+            1. Скачайте `z2a-${{ steps.version.outputs.VERSION }}.apk`
+            2. Откройте файл на устройстве
+            3. Разрешите установку из неизвестных источников (если требуется)
+            4. Установите и запустите
+            5. Нажмите кнопку подключения
+            6. Разрешите создание VPN-соединения
 
-            ### Что нового
-            - См. коммиты от предыдущего релиза
+            ### Возможности
+            - 45+ TCP-стратегий (RKN), 12+ QUIC-стратегий (YouTube), 12+ UDP (Discord)
+            - Автоциркуляр с per-domain персистентностью (state.tsv)
+            - Lua-скрипты: z2k-autocircular, z2k-modern-core, zapret-antidpi
+            - Профили: RKN, YouTube TCP/QUIC, Google Video, Discord Voice/STUN
+            - 125K+ доменов в списках блокировок
+            - Премиальный UI: Material Design 3, анимации, тёмная тема
           files: |
-            app/build/outputs/apk/debug/app-debug.apk
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/release/z2a-${{ steps.version.outputs.VERSION }}.apk
           draft: false
           prerelease: false
         env:
