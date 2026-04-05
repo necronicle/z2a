@@ -78,7 +78,7 @@ jobs:
             - Lua-скрипты: z2k-autocircular, z2k-modern-core, zapret-antidpi
             - Профили: RKN, YouTube TCP/QUIC, Google Video, Discord Voice/STUN
             - 125K+ доменов в списках блокировок
-            - Премиальный UI: Material Design 3, анимации, тёмная тема
+            - Material Design 3, тёмная тема
           files: |
             app/build/outputs/apk/release/z2a-${{ steps.version.outputs.VERSION }}.apk
           draft: false
