@@ -31,6 +31,9 @@ class Z2aVpnService : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Must call startForeground IMMEDIATELY to avoid crash on Android 12+
+        startForeground(NOTIFICATION_ID, buildNotification())
+
         when (intent?.action) {
             ACTION_STOP -> {
                 stopVpn()
@@ -47,67 +50,71 @@ class Z2aVpnService : VpnService() {
     private fun startVpn() {
         val app = application as Z2aApplication
 
-        // Extract assets (lua, files, hostlists) to internal storage
-        app.engineManager.extractAssets()
-
-        // Build VPN interface
-        val builder = Builder()
-            .setSession("z2a")
-            .setMtu(1500)
-            .addAddress("10.10.10.1", 30)
-            .addRoute("0.0.0.0", 0)
-            .addDnsServer("1.1.1.1")
-            .addDnsServer("8.8.8.8")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            builder.setMetered(false)
-        }
-
-        // Exclude our own app to prevent loops
         try {
-            builder.addDisallowedApplication(packageName)
-        } catch (_: Exception) {}
+            // Extract assets (lua, files, hostlists) to internal storage
+            app.engineManager.extractAssets()
 
-        vpnInterface = builder.establish()
+            // Build VPN interface
+            val builder = Builder()
+                .setSession("z2a")
+                .setMtu(1500)
+                .addAddress("10.10.10.1", 30)
+                .addRoute("0.0.0.0", 0)
+                .addDnsServer("1.1.1.1")
+                .addDnsServer("8.8.8.8")
 
-        if (vpnInterface == null) {
-            Log.e(TAG, "Failed to establish VPN interface")
-            app.vpnManager.onConnectionError("VPN interface creation failed")
-            stopSelf()
-            return
-        }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                builder.setMetered(false)
+            }
 
-        // Protect the engine socket from VPN routing
-        val fd = vpnInterface!!.fd
+            // Exclude our own app to prevent loops
+            try {
+                builder.addDisallowedApplication(packageName)
+            } catch (_: Exception) {}
 
-        // Build engine arguments from profile config
-        val profileConfigText = app.engineManager.profileConfig.loadProfilesConfig()
-        val args = app.engineManager.profileConfig.buildEngineArgs(
-            profileConfig = profileConfigText,
-            dataDir = filesDir.absolutePath,
-            enabledProfileIds = app.profileRepository.getEnabledProfiles().map { it.id }.toSet(),
-            silentFallback = false,
-            rstFilter = true,
-            austerusMode = false
-        )
+            vpnInterface = builder.establish()
 
-        // Start engine with TUN fd
-        val started = app.engineManager.start(fd, args)
-        if (!started) {
-            Log.e(TAG, "Failed to start engine")
-            app.vpnManager.onConnectionError(app.engineManager.lastError.value ?: "Engine start failed")
+            if (vpnInterface == null) {
+                Log.e(TAG, "Failed to establish VPN interface")
+                app.vpnManager.onConnectionError("VPN interface creation failed")
+                stopSelf()
+                return
+            }
+
+            val fd = vpnInterface!!.fd
+
+            // Build engine arguments from profile config
+            val profileConfigText = app.engineManager.profileConfig.loadProfilesConfig()
+            val args = app.engineManager.profileConfig.buildEngineArgs(
+                profileConfig = profileConfigText,
+                dataDir = filesDir.absolutePath,
+                enabledProfileIds = app.profileRepository.getEnabledProfiles().map { it.id }.toSet(),
+                silentFallback = false,
+                rstFilter = true,
+                austerusMode = false
+            )
+
+            // Start engine with TUN fd
+            val started = app.engineManager.start(fd, args)
+            if (!started) {
+                Log.e(TAG, "Failed to start engine")
+                app.vpnManager.onConnectionError(app.engineManager.lastError.value ?: "Движок не найден. Добавьте nfqws2 в jniLibs.")
+                vpnInterface?.close()
+                vpnInterface = null
+                stopSelf()
+                return
+            }
+
+            app.vpnManager.onConnected()
+            Log.i(TAG, "VPN started successfully")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "VPN start failed: ${e.message}", e)
+            app.vpnManager.onConnectionError(e.message ?: "Unknown error")
             vpnInterface?.close()
             vpnInterface = null
             stopSelf()
-            return
         }
-
-        app.vpnManager.onConnected()
-
-        // Start foreground notification
-        startForeground(NOTIFICATION_ID, buildNotification())
-
-        Log.i(TAG, "VPN started successfully")
     }
 
     private fun stopVpn() {

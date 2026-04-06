@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import android.os.Build
+import androidx.core.content.ContextCompat
 import com.z2a.data.models.ConnectionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +32,7 @@ class VpnManager(private val context: Context) {
         val intent = Intent(context, Z2aVpnService::class.java).apply {
             action = Z2aVpnService.ACTION_START
         }
-        context.startForegroundService(intent)
+        ContextCompat.startForegroundService(context, intent)
     }
 
     fun stopVpn() {
