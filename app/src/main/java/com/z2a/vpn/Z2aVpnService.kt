@@ -24,6 +24,7 @@ class Z2aVpnService : VpnService() {
     }
 
     private var vpnInterface: ParcelFileDescriptor? = null
+    private var tunnel: VpnTunnel? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -31,7 +32,6 @@ class Z2aVpnService : VpnService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Must call startForeground IMMEDIATELY to avoid crash on Android 12+
         startForeground(NOTIFICATION_ID, buildNotification())
 
         when (intent?.action) {
@@ -51,10 +51,6 @@ class Z2aVpnService : VpnService() {
         val app = application as Z2aApplication
 
         try {
-            // Extract assets (lua, files, hostlists) to internal storage
-            app.engineManager.extractAssets()
-
-            // Build VPN interface
             val builder = Builder()
                 .setSession("z2a")
                 .setMtu(1500)
@@ -67,7 +63,6 @@ class Z2aVpnService : VpnService() {
                 builder.setMetered(false)
             }
 
-            // Exclude our own app to prevent loops
             try {
                 builder.addDisallowedApplication(packageName)
             } catch (_: Exception) {}
@@ -81,32 +76,12 @@ class Z2aVpnService : VpnService() {
                 return
             }
 
-            val fd = vpnInterface!!.fd
-
-            // Build engine arguments from profile config
-            val profileConfigText = app.engineManager.profileConfig.loadProfilesConfig()
-            val args = app.engineManager.profileConfig.buildEngineArgs(
-                profileConfig = profileConfigText,
-                dataDir = filesDir.absolutePath,
-                enabledProfileIds = app.profileRepository.getEnabledProfiles().map { it.id }.toSet(),
-                silentFallback = false,
-                rstFilter = true,
-                austerusMode = false
-            )
-
-            // Start engine with TUN fd
-            val started = app.engineManager.start(fd, args)
-            if (!started) {
-                Log.e(TAG, "Failed to start engine")
-                app.vpnManager.onConnectionError(app.engineManager.lastError.value ?: "Движок не найден. Добавьте nfqws2 в jniLibs.")
-                vpnInterface?.close()
-                vpnInterface = null
-                stopSelf()
-                return
-            }
+            // Start the packet tunnel with built-in DPI bypass
+            tunnel = VpnTunnel(this, vpnInterface!!)
+            tunnel!!.start()
 
             app.vpnManager.onConnected()
-            Log.i(TAG, "VPN started successfully")
+            Log.i(TAG, "VPN started with built-in DPI bypass")
 
         } catch (e: Exception) {
             Log.e(TAG, "VPN start failed: ${e.message}", e)
@@ -119,7 +94,8 @@ class Z2aVpnService : VpnService() {
 
     private fun stopVpn() {
         val app = application as Z2aApplication
-        app.engineManager.stop()
+        tunnel?.stop()
+        tunnel = null
         vpnInterface?.close()
         vpnInterface = null
         app.vpnManager.onDisconnected()
